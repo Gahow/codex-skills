@@ -1,6 +1,6 @@
 ---
 name: repo-context
-description: Build accurate context for large external dependencies by identifying the exact repo/version, pulling matching source and docs, and summarizing key APIs before coding.
+description: Build accurate context for large external dependencies by identifying the exact repo/version, preferring local installed sources, and summarizing key APIs before coding.
 metadata:
   short-description: Verify external repo context
 ---
@@ -10,13 +10,19 @@ metadata:
 ## Trigger
 Use when the user asks to read GitHub source or docs, or when a task depends on the exact behavior of large dependencies (e.g., vLLM).
 
+## Local-First Rule
+Always look for local, already-downloaded dependencies used by the project before cloning or fetching anything.
+
 ## Workflow
 1. Identify dependency and version
    - Use `rg` to find dependency pins (for example: `pyproject.toml`, `requirements.txt`, `uv.lock`, `Cargo.lock`, `go.mod`).
    - Check for vendored copies or git submodules.
    - If version or repo URL is unclear, ask the user for the exact source and version/commit.
-2. Acquire source
-   - Prefer an existing local clone or vendored directory.
+2. Acquire source (local-first)
+   - Prefer local sources already used by the project: `.venv`, `vendor/`, `third_party/`, `deps/`, or submodules.
+   - For Python deps, run `source .venv/bin/activate`, then locate the package path with:
+     - `python -c "import <pkg>; print(<pkg>.__file__)"`
+   - If a local wheel or source tree exists, treat it as authoritative for that version.
    - If absent, clone into a local `deps/` directory or a user-provided path.
    - Checkout the exact tag/commit and record `git rev-parse HEAD`.
    - If network access is restricted, request approval before cloning or fetching.
